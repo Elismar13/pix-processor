@@ -11,7 +11,10 @@ export default registerAs(
     password: process.env.DB_PASSWORD ?? 'postgres',
     database: process.env.DB_NAME ?? 'pix_processor',
     entities: [__dirname + '/../**/*.entity{.ts,.js}'],
-    synchronize: process.env.NODE_ENV !== 'production',
-    logging: process.env.NODE_ENV === 'development',
+    migrations: [__dirname + '/../migrations/*.{ts,js}'],
+    migrationsTableName: 'migrations',
+    migrationsRun: true,
+    synchronize: false,
+    logging: process.env.NODE_ENV !== 'production',
   }),
 );
