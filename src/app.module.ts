@@ -6,6 +6,7 @@ import configuration from './config/configuration';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import databaseConfig from './config/database.config';
 import { BullModule } from '@nestjs/bull';
+import { UtilModule } from './modules/util/util.module';
 
 @Module({
   imports: [
@@ -14,9 +15,9 @@ import { BullModule } from '@nestjs/bull';
       envFilePath: ['.development.env', '.env'],
       load: [configuration],
     }),
-    TypeOrmModule.forRootAsync({
-      imports: [ConfigModule],
-      useFactory: () => databaseConfig(),
+    TypeOrmModule.forRoot({
+      ...databaseConfig(),
+      autoLoadEntities: true,
     }),
     BullModule.forRootAsync({
       imports: [ConfigModule],
@@ -32,6 +33,7 @@ import { BullModule } from '@nestjs/bull';
     BullModule.registerQueue({
       name: 'example-queue',
     }),
+    UtilModule,
   ],
   controllers: [AppController],
   providers: [AppService],
