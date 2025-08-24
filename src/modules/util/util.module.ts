@@ -1,9 +1,15 @@
 import { Module } from '@nestjs/common';
-import { UtilService } from './util.service';
-import { UtilController } from './util.controller';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { PixMessage } from '../../entities/pix-message.entity';
+import { Account } from '../../entities/account.entity';
+import { Institution } from '../../entities/institution.entity';
+import { PixMessageService } from './services/pix-message.service';
+import { PixMessageController } from './controllers/pix-message.controller';
 
 @Module({
-  controllers: [UtilController],
-  providers: [UtilService],
+  imports: [TypeOrmModule.forFeature([PixMessage, Account, Institution])],
+  controllers: [PixMessageController],
+  providers: [PixMessageService],
+  exports: [PixMessageService],
 })
 export class UtilModule {}
