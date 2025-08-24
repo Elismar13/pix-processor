@@ -8,7 +8,7 @@ import { AccountType } from '../../../enums/account-type.enum';
 type PixMessageGenerationResult = {
   pixMessage: PixMessage;
   payerAccount: Account;
-  payerInstitution: Institution;
+  receiverAccount: Account;
 };
 
 @Injectable()
@@ -72,7 +72,7 @@ export class RandomDataService {
       result.push({
         pixMessage,
         payerAccount,
-        payerInstitution,
+        receiverAccount,
       });
     }
 

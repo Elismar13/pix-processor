@@ -60,12 +60,12 @@ export class PixMessageService {
       const accounts: Account[] = [];
       const messages: PixMessage[] = [];
 
-      for (const { pixMessage, payerAccount, payerInstitution } of data) {
+      for (const { pixMessage, payerAccount, receiverAccount } of data) {
         // Payer
         const payerInstitutionEntity = await this.findOrCreateInstitution(
           manager,
-          payerInstitution.ispb,
-          payerInstitution.name,
+          payerAccount.institution.ispb,
+          payerAccount.institution.name,
         );
 
         const payerAccountEntity = await this.createAccount(
@@ -77,12 +77,13 @@ export class PixMessageService {
         // Receiver
         const receiverInstitutionEntity = await this.findOrCreateInstitution(
           manager,
-          ispb,
+          receiverAccount.institution.ispb,
+          receiverAccount.institution.name,
         );
 
         const receiverAccountEntity = await this.createAccount(
           manager,
-          this.randomData.generateAccount(ispb),
+          receiverAccount,
           receiverInstitutionEntity,
         );
 
