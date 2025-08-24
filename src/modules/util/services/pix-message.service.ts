@@ -48,6 +48,7 @@ export class PixMessageService {
 
       const pixMessageEntity = this.pixMessageRepo.create({
         ...pixMessage,
+        ispb,
         payer: payerAccountEntity,
         receiver: receiverAccountEntity,
       });

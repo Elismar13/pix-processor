@@ -14,6 +14,9 @@ export class PixMessage {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  @Column({ name: 'ispb', type: 'varchar', length: 8 })
+  ispb: string;
+
   @Column({ name: 'end_to_end_id', type: 'varchar', length: 32, unique: true })
   endToEndId: string;
 

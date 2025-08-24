@@ -19,6 +19,12 @@ export class CreatePixMessages1755961248001 implements MigrationInterface {
             default: 'uuid_generate_v4()',
           },
           {
+            name: 'ispb',
+            type: 'varchar',
+            length: '8',
+            isNullable: false,
+          },
+          {
             name: 'end_to_end_id',
             type: 'varchar',
             length: '32',
