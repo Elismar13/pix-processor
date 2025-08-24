@@ -5,6 +5,8 @@ import {
   IsDateString,
   ValidateNested,
   IsEnum,
+  Length,
+  Min,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { AccountType } from '../../../enums/account-type.enum';
@@ -38,10 +40,12 @@ export class AccountDto {
 export class CreatePixMessageDto {
   @IsString()
   @IsNotEmpty()
+  @Length(32, 32)
   endToEndId: string;
 
   @IsNumber()
   @IsNotEmpty()
+  @Min(0)
   valor: number;
 
   @ValidateNested()
