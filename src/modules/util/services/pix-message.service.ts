@@ -5,6 +5,7 @@ import { PixMessage } from '../../../entities/pix-message.entity';
 import { AccountService } from '../../account/services/account.service';
 import { InstitutionService } from '../../institution/services/institution.service';
 import { RandomDataService } from './random-data.service';
+import { Account } from 'src/entities/account.entity';
 
 @Injectable()
 export class PixMessageService {
@@ -21,11 +22,10 @@ export class PixMessageService {
     count: number,
   ): Promise<{ created: number }> {
     const data = this.randomData.generateMultiplePixMessages(count, ispb);
-    const accounts: any[] = [];
+    const accounts: Account[] = [];
     const messages: PixMessage[] = [];
 
     for (const { pixMessage, payerAccount, receiverAccount } of data) {
-      // Payer
       const payerInstitution = await this.institutionService.findOrCreate(
         payerAccount.institution.ispb,
         payerAccount.institution.name,
@@ -36,7 +36,6 @@ export class PixMessageService {
         payerInstitution,
       );
 
-      // Receiver
       const receiverInstitution = await this.institutionService.findOrCreate(
         receiverAccount.institution.ispb,
         receiverAccount.institution.name,
@@ -47,7 +46,6 @@ export class PixMessageService {
         receiverInstitution,
       );
 
-      // PixMessage
       const pixMessageEntity = this.pixMessageRepo.create({
         ...pixMessage,
         payer: payerAccountEntity,
@@ -58,7 +56,6 @@ export class PixMessageService {
       messages.push(pixMessageEntity);
     }
 
-    // Save all messages in a single transaction
     await this.pixMessageRepo.save(messages);
     return { created: messages.length };
   }
