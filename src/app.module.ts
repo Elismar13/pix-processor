@@ -7,6 +7,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import databaseConfig from './config/database.config';
 import { BullModule } from '@nestjs/bull';
 import { UtilModule } from './modules/util/util.module';
+import { AccountModule } from './modules/account/services/account.module';
+import { InstitutionModule } from './modules/institution/services/institution.module';
 
 @Module({
   imports: [
@@ -34,6 +36,8 @@ import { UtilModule } from './modules/util/util.module';
       name: 'example-queue',
     }),
     UtilModule,
+    AccountModule,
+    InstitutionModule,
   ],
   controllers: [AppController],
   providers: [AppService],

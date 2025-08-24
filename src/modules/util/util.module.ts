@@ -6,11 +6,18 @@ import { Institution } from '../../entities/institution.entity';
 import { PixMessageService } from './services/pix-message.service';
 import { PixMessageController } from './controllers/pix-message.controller';
 import { RandomDataService } from './services/random-data.service';
+import { AccountService } from '../account/services/account.service';
+import { InstitutionService } from '../institution/services/institution.service';
 
 @Module({
   imports: [TypeOrmModule.forFeature([PixMessage, Account, Institution])],
   controllers: [PixMessageController],
-  providers: [PixMessageService, RandomDataService],
+  providers: [
+    PixMessageService,
+    RandomDataService,
+    AccountService,
+    InstitutionService,
+  ],
   exports: [PixMessageService],
 })
 export class UtilModule {}
