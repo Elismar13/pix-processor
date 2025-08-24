@@ -9,6 +9,7 @@ import { BullModule } from '@nestjs/bull';
 import { UtilModule } from './modules/util/util.module';
 import { AccountModule } from './modules/account/services/account.module';
 import { InstitutionModule } from './modules/institution/services/institution.module';
+import { PixModule } from './modules/pix/pix.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { InstitutionModule } from './modules/institution/services/institution.mo
     UtilModule,
     AccountModule,
     InstitutionModule,
+    PixModule,
   ],
   controllers: [AppController],
   providers: [AppService],
