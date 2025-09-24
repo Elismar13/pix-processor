@@ -23,4 +23,9 @@ export class InstitutionService {
 
     return institution;
   }
+
+  async institutionExists(ispb: string): Promise<boolean> {
+    const institution = await this.institutionRepo.findOne({ where: { ispb } });
+    return !!institution;
+  }
 }

@@ -46,7 +46,7 @@ export class RandomDataService {
     pixMessage.freeField = faker.lorem.sentence();
     pixMessage.txId = faker.string.alphanumeric(18);
     pixMessage.paymentDatetime = now;
-    pixMessage.isProcessed = false;
+    pixMessage.isProcessed = true;
     pixMessage.isDelivered = false;
 
     return pixMessage;
