@@ -8,19 +8,14 @@ export class QueueService {
     @InjectQueue('message-processing') private readonly messageQueue: Queue,
   ) {}
 
-  async addMessageProcessJob(messageData: any): Promise<void> {
-    await this.messageQueue.add('process-message', messageData, {
+  async processStreamMessages(data: {
+    iterationId: string;
+    ispb: string;
+    messageIds: string[];
+  }): Promise<void> {
+    await this.messageQueue.add('process-stream-messages', data, {
       attempts: 3,
       backoff: 1000,
-    });
-  }
-
-  async addMarkDeliveredJob(data: {
-    messageIds: string[];
-    ispb: string;
-  }): Promise<void> {
-    await this.messageQueue.add('mark-delivered', data, {
-      attempts: 2,
     });
   }
 

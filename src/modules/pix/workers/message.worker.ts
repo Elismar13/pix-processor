@@ -13,26 +13,23 @@ export class MessageWorker {
     private readonly messageRepository: Repository<PixMessage>,
   ) {}
 
-  @Process('process-message')
-  async processMessage(job: Job<any>) {
-    const message = job.data;
-
-    await this.messageRepository.save({
-      ...message,
-      is_processed: true,
-    });
-  }
-
-  @Process('mark-delivered')
-  async markMessagesDelivered(
-    job: Job<{ messageIds: string[]; ispb: string }>,
+  @Process('process-stream-messages')
+  async processStreamMessages(
+    job: Job<{
+      iterationId: string;
+      ispb: string;
+      messageIds: string[];
+    }>,
   ) {
     const { messageIds } = job.data;
 
     await this.messageRepository
       .createQueryBuilder()
       .update(PixMessage)
-      .set({ isDelivered: true })
+      .set({
+        isProcessed: true,
+        isDelivered: true,
+      })
       .where('id IN (:...messageIds)', { messageIds })
       .execute();
   }

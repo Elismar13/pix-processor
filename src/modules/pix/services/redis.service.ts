@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-return */
 import { Injectable } from '@nestjs/common';
 import { Redis } from 'ioredis';
 
@@ -25,17 +26,22 @@ export class RedisService {
     await this.redisClient.srem(`ispb:${ispb}:streams`, iterationId);
   }
 
-  async cacheMessages(ispb: string, messages: any[]): Promise<void> {
-    if (messages.length === 0) return;
-
-    const key = `ispb:${ispb}:cached_messages`;
-    await this.redisClient.setex(key, 300, JSON.stringify(messages)); // 5 minutos
+  async addMessagesToStream(
+    iterationId: string,
+    messages: any[],
+  ): Promise<void> {
+    const key = `stream:${iterationId}:messages`;
+    await this.redisClient.setex(key, 3600, JSON.stringify(messages)); // 1 hora
   }
 
-  async getCachedMessages(ispb: string): Promise<any[]> {
-    const key = `ispb:${ispb}:cached_messages`;
-    const cached = await this.redisClient.get(key);
-    return cached ? JSON.parse(cached) : [];
+  async getStreamMessages(iterationId: string): Promise<any[]> {
+    const key = `stream:${iterationId}:messages`;
+    const messages = await this.redisClient.get(key);
+    return messages ? JSON.parse(messages) : [];
+  }
+
+  async removeStreamMessages(iterationId: string): Promise<void> {
+    await this.redisClient.del(`stream:${iterationId}:messages`);
   }
 
   async isHealthy(): Promise<boolean> {

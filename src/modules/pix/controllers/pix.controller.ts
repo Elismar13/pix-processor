@@ -28,24 +28,17 @@ export class PixController {
     @Headers('accept') acceptHeader: string,
     @Res() response: Response,
   ) {
-    // Verificar se a instituição existe
     if (!(await this.institutionService.institutionExists(ispb))) {
       throw new NotFoundException('Institution not found');
     }
 
-    // Verificar limite de streams
     const activeStreams = await this.redisService.getActiveStreamCount(ispb);
     if (activeStreams >= 6) {
       response.status(429).json({ error: 'Too many active streams' });
       return;
     }
 
-    // Registrar stream
-    const iterationId = randomUUID();
-    await this.redisService.addActiveStream(ispb, iterationId);
-
-    // Buscar mensagens
-    const messages = await this.pixService.getMessagesForStream(ispb, 10);
+    const { messages, iterationId } = await this.pixService.startStream(ispb);
 
     // Configurar resposta baseada no Accept header
     const isMultipart = acceptHeader === 'multipart/json';
@@ -58,12 +51,6 @@ export class PixController {
     if (messages.length === 0) {
       response.status(204).send();
     } else {
-      // Marcar como entregues assincronamente
-      await this.queueService.addMarkDeliveredJob({
-        messageIds: messages.map((m) => m.id),
-        ispb: ispb,
-      });
-
       response.status(200).json(responseData);
     }
   }
