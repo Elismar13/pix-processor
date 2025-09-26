@@ -15,8 +15,7 @@ export class PixService {
     private readonly queueService: QueueService,
   ) {}
 
-  // Buscar mensagens não entregues para um ISPB
-  async _getUndeliveredMessages(
+  private async getUndeliveredMessages(
     ispb: string,
     limit: number = 10,
   ): Promise<PixMessage[]> {
@@ -36,7 +35,7 @@ export class PixService {
     messages: any[];
     iterationId: string;
   }> {
-    const messages = await this._getUndeliveredMessages(ispb);
+    const messages = await this.getUndeliveredMessages(ispb);
 
     const iterationId = randomUUID();
 
@@ -47,6 +46,38 @@ export class PixService {
     return {
       messages,
       iterationId,
+    };
+  }
+
+  async continueStream(
+    ispb: string,
+    iterationId: string,
+  ): Promise<{
+    messages: any[];
+    hasMore: boolean;
+  }> {
+    const messages = await this.redisService.getStreamMessages(ispb);
+
+    const hasMore = messages.length > 0;
+
+    if (hasMore) {
+      await this.queueService.processStreamMessages({
+        iterationId,
+        ispb,
+        messageIds: messages.map((m) => m.id as string),
+      });
+
+      const remaningMessages = messages.slice(messages.length);
+
+      await this.redisService.addMessagesToStream(
+        iterationId,
+        remaningMessages,
+      );
+    }
+
+    return {
+      messages,
+      hasMore,
     };
   }
 

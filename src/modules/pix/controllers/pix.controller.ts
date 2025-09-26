@@ -54,4 +54,33 @@ export class PixController {
       response.status(200).json(responseData);
     }
   }
+
+  @Get(':ispb/stream/:iterationId')
+  async continueStream(
+    @Param('ispb') ispb: string,
+    @Param('iterationId') iterationId: string,
+    @Headers('accept') acceptHeader: string,
+    @Res() response: Response,
+  ) {
+    if (!(await this.institutionService.institutionExists(ispb))) {
+      throw new NotFoundException('Institution not found');
+    }
+
+    const { messages, hasMore } = await this.pixService.continueStream(
+      ispb,
+      iterationId,
+    );
+
+    if (hasMore) {
+      response.setHeader('Pull-Next', `/api/pix/${ispb}/stream/${iterationId}`);
+    } else {
+      response.removeHeader('Pull-Next');
+    }
+
+    if (messages.length === 0) {
+      return response.status(204).send();
+    }
+
+    return response.status(200).json(messages);
+  }
 }
