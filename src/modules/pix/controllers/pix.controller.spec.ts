@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { PixController } from './pix.controller';
-import { PixService } from './pix.service';
+import { PixService } from '../services/pix.service';
 
 describe('PixController', () => {
   let controller: PixController;
