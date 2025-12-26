@@ -35,12 +35,14 @@ export class PixService {
     messages: any[];
     iterationId: string;
   }> {
-    const messages = await this.getUndeliveredMessages(ispb);
+    // Sempre busca até 10 mensagens por ciclo, conforme especificação
+    const messages = await this.getUndeliveredMessages(ispb, 10);
 
     const iterationId = randomUUID();
 
+    // Por padrão, mantemos todas as mensagens no stream até que o controller
+    // decida o tamanho do lote na continuação. Aqui apenas registramos o stream.
     await this.redisService.addMessagesToStream(iterationId, messages);
-
     await this.redisService.addActiveStream(ispb, iterationId);
 
     return {
@@ -52,32 +54,37 @@ export class PixService {
   async continueStream(
     ispb: string,
     iterationId: string,
+    batchSize: number = 10,
   ): Promise<{
     messages: any[];
     hasMore: boolean;
   }> {
-    const messages = await this.redisService.getStreamMessages(ispb);
+    const messagesInStream =
+      await this.redisService.getStreamMessages(iterationId);
 
-    const hasMore = messages.length > 0;
-
-    if (hasMore) {
-      await this.queueService.processStreamMessages({
-        iterationId,
-        ispb,
-        messageIds: messages.map((m) => m.id as string),
-      });
-
-      const remaningMessages = messages.slice(messages.length);
-
-      await this.redisService.addMessagesToStream(
-        iterationId,
-        remaningMessages,
-      );
+    if (!messagesInStream || messagesInStream.length === 0) {
+      return {
+        messages: [],
+        hasMore: false,
+      };
     }
 
+    const batch = messagesInStream.slice(0, Math.max(1, batchSize));
+    const remaining = messagesInStream.slice(batch.length);
+
+    // Processa apenas o lote retornado
+    await this.queueService.processStreamMessages({
+      iterationId,
+      ispb,
+      messageIds: batch.map((m) => m.id as string),
+    });
+
+    // Atualiza o stream com os remanescentes
+    await this.redisService.addMessagesToStream(iterationId, remaining);
+
     return {
-      messages,
-      hasMore,
+      messages: batch,
+      hasMore: remaining.length > 0,
     };
   }
 

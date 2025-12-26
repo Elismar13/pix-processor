@@ -66,21 +66,23 @@ export class PixController {
       throw new NotFoundException('Institution not found');
     }
 
-    const { messages, hasMore } = await this.pixService.continueStream(
+    const isMultipart = acceptHeader === 'multipart/json';
+    const batchSize = isMultipart ? 10 : 1;
+
+    const { messages } = await this.pixService.continueStream(
       ispb,
       iterationId,
+      batchSize,
     );
 
-    if (hasMore) {
-      response.setHeader('Pull-Next', `/api/pix/${ispb}/stream/${iterationId}`);
-    } else {
-      response.removeHeader('Pull-Next');
-    }
+    response.setHeader('Pull-Next', `/api/pix/${ispb}/stream/${iterationId}`);
 
     if (messages.length === 0) {
       return response.status(204).send();
     }
 
-    return response.status(200).json(messages);
+    return response
+      .status(200)
+      .json(isMultipart ? messages : (messages[0] ?? null));
   }
 }
