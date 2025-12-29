@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { PixMessage } from '../../../entities/pix-message.entity';
 import { RedisService } from './redis.service';
 import { QueueService } from './queue.service';
@@ -35,14 +35,13 @@ export class PixService {
     messages: any[];
     iterationId: string;
   }> {
-    // Sempre busca até 10 mensagens por ciclo, conforme especificação
     const messages = await this.getUndeliveredMessages(ispb, 10);
 
     const iterationId = randomUUID();
 
-    // Por padrão, mantemos todas as mensagens no stream até que o controller
-    // decida o tamanho do lote na continuação. Aqui apenas registramos o stream.
-    await this.redisService.addMessagesToStream(iterationId, messages);
+    // Armazena apenas os IDs das mensagens no stream
+    const messageIds = messages.map((m) => String(m.id));
+    await this.redisService.addMessagesToStream(iterationId, messageIds);
     await this.redisService.addActiveStream(ispb, iterationId);
 
     return {
@@ -59,32 +58,43 @@ export class PixService {
     messages: any[];
     hasMore: boolean;
   }> {
-    const messagesInStream =
-      await this.redisService.getStreamMessages(iterationId);
+    const idsInStream = (await this.redisService.getStreamMessages(
+      iterationId,
+    )) as string[];
 
-    if (!messagesInStream || messagesInStream.length === 0) {
+    if (!idsInStream || idsInStream.length === 0) {
       return {
         messages: [],
         hasMore: false,
       };
     }
 
-    const batch = messagesInStream.slice(0, Math.max(1, batchSize));
-    const remaining = messagesInStream.slice(batch.length);
+    const batchIds = idsInStream.slice(0, Math.max(1, batchSize));
+    const remainingIds = idsInStream.slice(batchIds.length);
 
-    // Processa apenas o lote retornado
+    // Enfileira apenas os IDs do lote
     await this.queueService.processStreamMessages({
       iterationId,
       ispb,
-      messageIds: batch.map((m) => m.id as string),
+      messageIds: batchIds,
     });
 
-    // Atualiza o stream com os remanescentes
-    await this.redisService.addMessagesToStream(iterationId, remaining);
+    // Atualiza o stream com os IDs remanescentes
+    await this.redisService.addMessagesToStream(iterationId, remainingIds);
+
+    // Busca as mensagens completas pelo Postgres para devolver na resposta
+    const rows = await this.pixMessageRepository.find({
+      where: { id: In(batchIds) },
+      relations: ['receiver', 'payer'],
+    });
+    const mapById = new Map(rows.map((r) => [String((r as any).id), r]));
+    const batch = batchIds
+      .map((id) => mapById.get(String(id)))
+      .filter((r) => Boolean(r));
 
     return {
       messages: batch,
-      hasMore: remaining.length > 0,
+      hasMore: remainingIds.length > 0,
     };
   }
 
