@@ -44,6 +44,37 @@ export class RedisService {
     await this.redisClient.del(`stream:${iterationId}:messages`);
   }
 
+  // Associa messageIds -> iterationId (por ISPB) de forma atômica.
+  // Apenas IDs não reclamados previamente são associados e retornados.
+  async claimMessageIds(
+    ispb: string,
+    iterationId: string,
+    messageIds: string[],
+  ): Promise<string[]> {
+    if (!messageIds.length) return [];
+    const ownerKey = `ispb:${ispb}:owners`;
+    const pipeline = this.redisClient.pipeline();
+    for (const id of messageIds) {
+      pipeline.hsetnx(ownerKey, id, iterationId);
+    }
+    const results = await pipeline.exec();
+    const claimed: string[] = [];
+    results?.forEach((res, idx) => {
+      const [err, reply] = res as [Error | null, number | null];
+      if (!err && reply === 1) {
+        claimed.push(messageIds[idx] as string);
+      }
+    });
+    return claimed;
+  }
+
+  // Libera associação de messageIds previamente reclamados
+  async releaseMessageIds(ispb: string, messageIds: string[]): Promise<void> {
+    if (!messageIds.length) return;
+    const ownerKey = `ispb:${ispb}:owners`;
+    await this.redisClient.hdel(ownerKey, ...messageIds);
+  }
+
   async isHealthy(): Promise<boolean> {
     try {
       await this.redisClient.ping();

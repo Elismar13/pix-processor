@@ -69,26 +69,44 @@ export class PixService {
       };
     }
 
-    const batchIds = idsInStream.slice(0, Math.max(1, batchSize));
-    const remainingIds = idsInStream.slice(batchIds.length);
+    const candidateIds = idsInStream.slice(0, Math.max(1, batchSize));
+    const tailIds = idsInStream.slice(candidateIds.length);
 
-    // Enfileira apenas os IDs do lote
-    await this.queueService.processStreamMessages({
-      iterationId,
+    // Claim atômico: apenas IDs realmente associados a este iterationId seguem para fila
+    const claimedIds = await this.redisService.claimMessageIds(
       ispb,
-      messageIds: batchIds,
-    });
+      iterationId,
+      candidateIds,
+    );
+
+    // IDs não-claimados voltam ao início, preservando ordem
+    const unclaimedIds = candidateIds.filter((id) => !claimedIds.includes(id));
+    const remainingIds = [...unclaimedIds, ...tailIds];
 
     // Atualiza o stream com os IDs remanescentes
     await this.redisService.addMessagesToStream(iterationId, remainingIds);
 
+    if (claimedIds.length === 0) {
+      return {
+        messages: [],
+        hasMore: remainingIds.length > 0,
+      };
+    }
+
+    // Enfileira apenas os IDs claimados
+    await this.queueService.processStreamMessages({
+      iterationId,
+      ispb,
+      messageIds: claimedIds,
+    });
+
     // Busca as mensagens completas pelo Postgres para devolver na resposta
     const rows = await this.pixMessageRepository.find({
-      where: { id: In(batchIds) },
+      where: { id: In(claimedIds) },
       relations: ['receiver', 'payer'],
     });
     const mapById = new Map(rows.map((r) => [String((r as any).id), r]));
-    const batch = batchIds
+    const batch = claimedIds
       .map((id) => mapById.get(String(id)))
       .filter((r) => Boolean(r));
 
