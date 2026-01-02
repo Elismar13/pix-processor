@@ -39,13 +39,29 @@ export class PixService {
 
     const iterationId = randomUUID();
 
-    // Armazena apenas os IDs das mensagens no stream
-    const messageIds = messages.map((m) => String(m.id));
-    await this.redisService.addMessagesToStream(iterationId, messageIds);
+    const candidateIds = messages.map((m) => String(m.id));
+    const claimedIds = await this.redisService.claimMessageIds(
+      ispb,
+      iterationId,
+      candidateIds,
+    );
+    await this.redisService.addMessagesToStream(iterationId, claimedIds);
     await this.redisService.addActiveStream(ispb, iterationId);
 
+    let fullMessages: any[] = [];
+    if (claimedIds.length > 0) {
+      const rows = await this.pixMessageRepository.find({
+        where: { id: In(claimedIds) },
+        relations: ['receiver', 'payer'],
+      });
+      const mapById = new Map(rows.map((r) => [String((r as any).id), r]));
+      fullMessages = claimedIds
+        .map((id) => mapById.get(String(id)))
+        .filter((r) => Boolean(r));
+    }
+
     return {
-      messages,
+      messages: fullMessages,
       iterationId,
     };
   }
